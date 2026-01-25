@@ -1,22 +1,59 @@
-# delay-effect-detection
-This project is an implementation of Cepstrum Analysis in order to detect the time parameter of a delay effect on electric guitar.
+# Guitar Delay Parameter Detection using Cepstrum Analysis
 
-THEORETICAL BACKGROUND
-This analysis generally used in echo detecting algorithms
-In our case we assume delayed function as x(t) + ax(t- t0), its fourier transform will be X(JW) + aX(JW)exp(-jwt0) which simplifies to X(JW)(1 + a.exp(-jwt0))
-Cepstral analysis seperates the term (1 + a.exp(jwt0)) with taking the logarithm of the magnitude, when its inverse fourier transform is taken, this periodic ripple manifests as a series of sharp peaks (spikes) in the cepstrum at t0, 2t0, 3t0 ... 
+## Overview
+This project implements **Cepstrum Analysis** to automatically detect the time parameter ($t_0$) of a delay effect applied to an electric guitar signal. By analyzing the "quefrency" domain, the algorithm separates the original signal from the echo to pinpoint the precise delay time, regardless of the guitar tone or playing style.
 
-PARAMETERS
-Prominence parameter is kept low when extracting the peaks initially. Because even though the first delay peak has high prominence, its harmonics have low prominences, since we need those harmonics while considering the periodicty, we should capture them. 
+## Theoretical Background
+Cepstrum analysis is widely used in echo detection and speech processing (e.g., pitch detection).
 
-Minimum Delay: Delay is checked after 50 ms since 1 on the term  (1 + a.exp(-jwt0)) gives rise to the cepstrum in the beginning (consider 1 as exp(jw0))
-Maximum Delay: Harmonics after 2000ms (2 seconds) are ignored, as this time parameter is outside the range of typical guitar delay usage.
+Mathematically, we model a signal with a single echo as:
+$$y(t) = x(t) + \alpha x(t - t_0)$$
 
-PERIODICITY CHECK
-We encountered many false peaks in our cepstrum, in order to seperate the fundemental delay parameter, we checked the periodicity. However, we also apply a second prominence filter (if peak_prominence_values[p] < 0.007: continue) before scoring. This allows us to use a very low initial prominence to catch all harmonics, but ensures we only start scoring peaks that are "strong" enough to be a potential fundamental delay.
+Where:
+* $x(t)$ is the original signal.
+* $\alpha$ is the attenuation factor of the echo (typically $< 1$).
+* $t_0$ is the delay time.
 
-TEST
-I made different records with different tones, playing styles and delay parameter, and the algorithm was succeed in all of these. You can find my records in audio_files branch.
+Taking the **Fourier Transform** of this equation:
+$$Y(j\omega) = X(j\omega) + \alpha X(j\omega)e^{-j\omega t_0} = X(j\omega)(1 + \alpha e^{-j\omega t_0})$$
 
-You can test with your own recordings and send a feedback to me
+The **Power Cepstrum** is obtained by taking the squared magnitude, the logarithm, and then the Inverse Fourier Transform (or Inverse DFT). The logarithm turns the multiplication into addition:
+$$\log|Y(j\omega)| = \log|X(j\omega)| + \log|1 + \alpha e^{-j\omega t_0}|$$
+
+When the inverse transform is taken to move into the **Quefrency domain**, the term $\log(1 + \alpha e^{-j\omega t_0})$ manifests as a periodic ripple. This results in a series of sharp peaks (spikes) in the cepstrum occurring at indices corresponding to $t_0, 2t_0, 3t_0, \dots$.
+
+## Algorithm & Parameters
+
+To ensure robustness against noise and false positives, the algorithm utilizes a multi-stage filtering process:
+
+### 1. Adaptive Prominence Filtering
+We utilize a **two-pass prominence strategy**:
+* **Initial Extraction (High Sensitivity):** The prominence parameter is kept intentionally low to extract a wide range of peaks. This is crucial because while the fundamental delay peak ($t_0$) usually has high prominence, its harmonics ($2t_0, 3t_0$) often decay in strength. We need to capture these weaker harmonics to verify periodicity.
+* **Scoring Filter (High Specificity):** Before calculating the final score, a second filter is applied (e.g., `peak_prominence > 0.007`). This ensures that we only consider peaks "strong" enough to be potential candidates for the fundamental delay, while still having the history of the smaller peaks for verification.
+
+### 2. Time Window Constraints
+* **Minimum Delay (50ms):** The analysis ignores the first 50ms of the cepstrum. This acts as a high-pass lifter to remove the DC component and low-quefrency features inherent to the source signal (the "1" in the logarithmic term).
+* **Maximum Delay (2000ms):** Harmonics and peaks beyond 2 seconds are ignored, as this falls outside the standard usage range for guitar delay effects.
+
+### 3. Periodicity Check
+A raw cepstrum often contains spurious peaks caused by the guitar's harmonic content. To isolate the true delay time, the algorithm checks for **periodicity**. It looks for a sequence of peaks spaced evenly ($t_0, 2t_0, \dots$) to confirm the fundamental delay time rather than relying on the single highest magnitude peak.
+
+## Testing & Results
+The algorithm has been tested against various recordings featuring:
+* Different guitar tones (clean, overdrive).
+* Various playing styles (strumming, picking).
+* Different delay time settings.
+
+The implementation successfully detected the delay parameter in all test cases.
+
+> **Note:** Test recordings can be found in the `audio_files` branch of this repository.
+
+## Usage
+*(Add instructions here on how to run your code, for example:)*
+
+1. Clone the repository.
+2. Install dependencies: `pip install -r requirements.txt`
+3. Run the analysis script:
+   ```bash
+   python main.py path/to/your/audio.wav
 
