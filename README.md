@@ -46,14 +46,5 @@ The algorithm has been tested against various recordings featuring:
 
 The implementation successfully detected the delay parameter in all test cases.
 
-> **Note:** Test recordings can be found in the `audio_files` branch of this repository.
-
-## Usage
-*(Add instructions here on how to run your code, for example:)*
-
-1. Clone the repository.
-2. Install dependencies: `pip install -r requirements.txt`
-3. Run the analysis script:
-   ```bash
-   python main.py path/to/your/audio.wav
+> **Note:** Test recordings can be found in the `audio_files` branch of this 
 
